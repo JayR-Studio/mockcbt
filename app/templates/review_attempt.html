@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Review Corrections | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="dashboard-header">
+            <div>
+                <p class="hero-label">ANSWER REVIEW</p>
+                <h1>Review Corrections</h1>
+                <p>Go through your answers and learn from your mistakes.</p>
+            </div>
+
+            <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary">
+                Back to Dashboard
+            </a>
+        </div>
+
+        <div class="mt-4">
+            {% for answer in answers %}
+                <div class="review-card mb-4">
+
+                    <div class="review-card-header">
+                        <p class="question-number">Question {{ loop.index }}</p>
+
+                        {% if answer.is_correct %}
+                            <span class="badge text-bg-success">Correct</span>
+                        {% else %}
+                            <span class="badge text-bg-danger">Wrong</span>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="review-question">
+                        {{ answer.question.question_text }}
+                    </h3>
+
+                    <div class="review-options">
+
+                        <div class="review-option
+                            {% if answer.question.correct_option == 'A' %}correct-option{% endif %}
+                            {% if answer.selected_option == 'A' and not answer.is_correct %}wrong-option{% endif %}">
+                            <strong>A.</strong> {{ answer.question.option_a }}
+                        </div>
+
+                        <div class="review-option
+                            {% if answer.question.correct_option == 'B' %}correct-option{% endif %}
+                            {% if answer.selected_option == 'B' and not answer.is_correct %}wrong-option{% endif %}">
+                            <strong>B.</strong> {{ answer.question.option_b }}
+                        </div>
+
+                        <div class="review-option
+                            {% if answer.question.correct_option == 'C' %}correct-option{% endif %}
+                            {% if answer.selected_option == 'C' and not answer.is_correct %}wrong-option{% endif %}">
+                            <strong>C.</strong> {{ answer.question.option_c }}
+                        </div>
+
+                        <div class="review-option
+                            {% if answer.question.correct_option == 'D' %}correct-option{% endif %}
+                            {% if answer.selected_option == 'D' and not answer.is_correct %}wrong-option{% endif %}">
+                            <strong>D.</strong> {{ answer.question.option_d }}
+                        </div>
+
+                    </div>
+
+                    <div class="answer-summary mt-3">
+                        <p>
+                            <strong>Your Answer:</strong>
+                            {{ answer.selected_option or "Not answered" }}
+                        </p>
+
+                        <p>
+                            <strong>Correct Answer:</strong>
+                            {{ answer.question.correct_option }}
+                        </p>
+                    </div>
+
+                    {% if answer.question.explanation %}
+                        <div class="explanation-box">
+                            <strong>Explanation:</strong>
+                            <p>{{ answer.question.explanation }}</p>
+                        </div>
+                    {% endif %}
+
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    No answers found for this attempt.
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</section>
+{% endblock %}

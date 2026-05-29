@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Question Detail | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="dashboard-header">
+            <div>
+                <p class="hero-label">QUESTION PREVIEW</p>
+                <h1>Question Detail</h1>
+                <p>Inspect this question before taking action.</p>
+            </div>
+
+            <a href="{{ url_for('admin.questions') }}" class="btn btn-outline-secondary">
+                Back to Questions
+            </a>
+        </div>
+
+        <div class="admin-panel mt-4">
+
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                <div>
+                    <p class="mb-1">
+                        <strong>Practice Set:</strong>
+                        {{ question.exam_year.label or question.exam_year.year }}
+                    </p>
+
+                    <p class="mb-1">
+                        <strong>Subject:</strong>
+                        {{ question.subject.name }}
+                    </p>
+
+                    <p class="mb-1">
+                        <strong>Difficulty:</strong>
+                        {{ question.difficulty|capitalize }}
+                    </p>
+                </div>
+
+                <div>
+                    {% if question.is_active %}
+                        <span class="badge text-bg-success">Active</span>
+                    {% else %}
+                        <span class="badge text-bg-secondary">Disabled</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr>
+
+            <h4 class="question-preview-title">Question</h4>
+            <div class="question-preview-box">
+                {{ question.question_text }}
+            </div>
+
+            <div class="review-options mt-4">
+
+                <div class="review-option {% if question.correct_option == 'A' %}correct-option{% endif %}">
+                    <strong>A.</strong> {{ question.option_a }}
+                </div>
+
+                <div class="review-option {% if question.correct_option == 'B' %}correct-option{% endif %}">
+                    <strong>B.</strong> {{ question.option_b }}
+                </div>
+
+                <div class="review-option {% if question.correct_option == 'C' %}correct-option{% endif %}">
+                    <strong>C.</strong> {{ question.option_c }}
+                </div>
+
+                <div class="review-option {% if question.correct_option == 'D' %}correct-option{% endif %}">
+                    <strong>D.</strong> {{ question.option_d }}
+                </div>
+
+            </div>
+
+            <div class="answer-summary mt-4">
+                <p>
+                    <strong>Correct Option:</strong>
+                    {{ question.correct_option }}
+                </p>
+            </div>
+
+            {% if question.explanation %}
+                <div class="explanation-box">
+                    <strong>Explanation:</strong>
+                    <p>{{ question.explanation }}</p>
+                </div>
+            {% endif %}
+
+            <div class="mt-4 d-flex gap-2 flex-wrap">
+                {% if question.is_active %}
+                    <form method="POST"
+                          action="{{ url_for('admin.delete_question', question_id=question.id) }}"
+                          onsubmit="return confirm('Disable this question? It will no longer appear in exams.');">
+                        <button class="btn btn-outline-danger">
+                            Disable Question
+                        </button>
+                    </form>
+                {% else %}
+                    <form method="POST"
+                          action="{{ url_for('admin.restore_question', question_id=question.id) }}"
+                          onsubmit="return confirm('Restore this question? It will appear in exams again.');">
+                        <button class="btn btn-outline-success">
+                            Restore Question
+                        </button>
+                    </form>
+                {% endif %}
+
+                <a href="{{ url_for('admin.questions') }}" class="btn btn-outline-secondary">
+                    Back
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

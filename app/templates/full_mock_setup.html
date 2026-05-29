@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Full Mock Setup | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="dashboard-header">
+            <div>
+                <p class="hero-label">FULL MOCK EXAM</p>
+                <h1>Set Up Your Full Mock</h1>
+                <p>Choose a practice set, number of questions, and duration.</p>
+            </div>
+
+            <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary">
+                Back to Dashboard
+            </a>
+        </div>
+
+        <div class="row g-4 mt-4">
+
+            <div class="col-lg-5">
+                <div class="practice-card featured-practice-card">
+                    <p class="practice-label">TIMED PRACTICE</p>
+                    <h3>Full Mock Exam</h3>
+                    <p>
+                        This mode randomly selects active questions from your chosen practice set.
+                    </p>
+
+                    <div class="mt-4">
+                        <p class="mb-0">
+                            <strong>Available Practice Sets:</strong> {{ years|length }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="practice-card">
+                    <h3>Choose Exam Settings</h3>
+                    <p>Select your practice set, question count, and duration.</p>
+
+                    {% if years %}
+                        <form method="POST" class="mt-4">
+
+                            <div class="mb-3">
+                                <label class="form-label">Practice Set</label>
+                                <select name="year_id" class="form-control" required>
+                                    <option value="">Select practice set</option>
+
+                                    {% for exam_year in years %}
+                                        {% set active_count = year_question_counts[exam_year.id] %}
+
+                                        {% if active_count > 0 %}
+                                            <option value="{{ exam_year.id }}">
+                                                {{ exam_year.label or exam_year.year }} — {{ active_count }} active questions
+                                            </option>
+                                        {% else %}
+                                            <option value="{{ exam_year.id }}" disabled>
+                                                {{ exam_year.label or exam_year.year }} — No active questions
+                                            </option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Number of Questions</label>
+                                <select name="question_count" class="form-control" required>
+                                    <option value="">Select number of questions</option>
+                                    <option value="10">10 Questions</option>
+                                    <option value="20">20 Questions</option>
+                                    <option value="30">30 Questions</option>
+                                    <option value="50">50 Questions</option>
+                                    <option value="100">100 Questions</option>
+                                </select>
+                                <small class="text-muted">
+                                    The system will prevent starting if the selected practice set has fewer active questions.
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Duration</label>
+                                <select name="duration" class="form-control" required>
+                                    <option value="">Select duration</option>
+                                    <option value="10">10 Minutes</option>
+                                    <option value="20">20 Minutes</option>
+                                    <option value="30">30 Minutes</option>
+                                    <option value="45">45 Minutes</option>
+                                    <option value="60">60 Minutes</option>
+                                    <option value="90">90 Minutes</option>
+                                </select>
+                            </div>
+
+                            <button class="btn btn-gold w-100">
+                                Start Full Mock
+                            </button>
+
+                        </form>
+                    {% else %}
+                        <div class="empty-state mt-4">
+                            No practice set has been uploaded yet.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

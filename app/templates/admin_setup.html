@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Setup | MockCBT{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card">
+        <p class="hero-label">ADMIN SETUP</p>
+        <h2>Admin Login</h2>
+        <p>Use your private admin credentials.</p>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <input type="email" name="email" class="form-control mb-3" placeholder="Admin email" required>
+            <input type="password" name="password" class="form-control mb-3" placeholder="Admin password" required>
+
+            <button class="btn btn-gold w-100">Continue</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account | MockCBT{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card">
+        <h2>Create Account</h2>
+        <p>Start your CBT practice journey.</p>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <input type="text" name="full_name" class="form-control mb-3" placeholder="Full name" required>
+            <input type="email" name="email" class="form-control mb-3" placeholder="Email address" required>
+            <input type="text" name="phone_number" class="form-control mb-3" placeholder="Phone number" required>
+            <input type="password" name="password" class="form-control mb-3" placeholder="Password" required>
+            <input type="password" name="confirm_password" class="form-control mb-3" placeholder="Confirm password" required>
+
+            <button class="btn btn-gold w-100">Create Account</button>
+        </form>
+
+        <p class="auth-link">
+            Already have an account?
+            <a href="{{ url_for('auth.login') }}">Login</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}MockCBT | Practice Smarter{% endblock %}
+
+{% block content %}
+
+<section class="hero-section polished-hero">
+    <div class="hero-glow hero-glow-one"></div>
+    <div class="hero-glow hero-glow-two"></div>
+
+    <div class="container position-relative">
+        <div class="row align-items-center gy-5">
+
+            <div class="col-lg-6">
+                <p class="hero-label">PROMOTIONAL EXAM PRACTICE</p>
+
+                <h1 class="hero-title">
+                    Prepare smarter with timed mock CBT practice.
+                </h1>
+
+                <p class="hero-text">
+                    Practice with structured past-question sets, timed exams, instant results,
+                    and answer reviews designed to help you prepare with confidence.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-gold btn-lg">
+                        Start Practicing
+                    </a>
+
+                    <a href="#pricing" class="btn btn-outline-light btn-lg">
+                        View Pricing
+                    </a>
+                </div>
+
+                <div class="hero-trust-row">
+                    <span>Timed CBT</span>
+                    <span>Instant Score</span>
+                    <span>Answer Review</span>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="mock-device-card">
+                    <div class="mock-device-header">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                    <div class="mock-exam-card">
+                        <div class="mock-exam-top">
+                            <strong>Full Mock Exam</strong>
+                            <span>42:15 left</span>
+                        </div>
+
+                        <p class="mock-question-label">Question 12/50</p>
+                        <h4>Choose the option that best completes the sentence.</h4>
+
+                        <div class="mock-option active">A. Service</div>
+                        <div class="mock-option">B. Discipline</div>
+                        <div class="mock-option">C. Procedure</div>
+                        <div class="mock-option">D. Regulation</div>
+
+                        <div class="mock-progress">
+                            <div></div>
+                        </div>
+                    </div>
+
+                    <div class="floating-score-card">
+                        <span>Last Score</span>
+                        <strong>78%</strong>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<section class="features-section">
+    <div class="container">
+
+        <div class="section-header text-center">
+            <p class="hero-label">WHY MOCKCBT?</p>
+            <h2>Everything needed for focused exam practice.</h2>
+            <p>Built to make revision easier, faster, and more organized.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card elevated-card">
+                    <h5>Timed Mock Exams</h5>
+                    <p>Practice under pressure with a countdown timer.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card elevated-card">
+                    <h5>Practice Sets</h5>
+                    <p>Questions are organized into uploaded exam sets.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card elevated-card">
+                    <h5>Instant Results</h5>
+                    <p>See your score immediately after submission.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card elevated-card">
+                    <h5>Corrections Review</h5>
+                    <p>Review correct answers and learn from mistakes.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<section class="how-section">
+    <div class="container">
+        <div class="section-header text-center">
+            <p class="hero-label">HOW IT WORKS</p>
+            <h2>Start practicing in minutes.</h2>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="step-card">
+                    <span>1</span>
+                    <h5>Create Account</h5>
+                    <p>Register with your basic details.</p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="step-card">
+                    <span>2</span>
+                    <h5>Activate Access</h5>
+                    <p>Use your activation code after payment.</p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="step-card">
+                    <span>3</span>
+                    <h5>Choose Set</h5>
+                    <p>Select the practice set and question count.</p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="step-card">
+                    <span>4</span>
+                    <h5>Review Result</h5>
+                    <p>Check your score and review corrections.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="pricing-section" id="pricing">
+    <div class="container">
+
+        <div class="pricing-card text-center">
+            <p class="pricing-label">EARLY BIRD ACTIVATION</p>
+
+            <div class="pricing-price">
+                <span class="pricing-old-price">₦2,000</span>
+                <span class="pricing-new-price">₦1,500</span>
+            </div>
+
+            <p>
+                Early bird activation gives you access to full mock exams, instant scores,
+                answer reviews, and past attempt tracking.
+            </p>
+
+            <a href="{{ url_for('auth.register') }}" class="btn btn-gold btn-lg">
+                Create Account
+            </a>
+
+            <small class="pricing-note">
+                Early bird offer available for a limited time. Manual payment confirmation applies during this test
+                phase.
+            </small>
+        </div>
+
+    </div>
+</section>
+
+<section class="disclaimer-section">
+    <div class="container">
+        <div class="disclaimer-card">
+            <strong>Disclaimer:</strong>
+            MockCBT is an independent educational preparation platform. It is not affiliated with,
+            endorsed by, or operated by the Civil Service Commission, POLAC, the Nigeria Police Force,
+            or any government institution.
+        </div>
+    </div>
+</section>
+
+{% endblock %}

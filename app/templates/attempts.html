@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Past Attempts | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="dashboard-header">
+            <div>
+                <p class="hero-label">PAST ATTEMPTS</p>
+                <h1>Your Previous Attempts</h1>
+                <p>Track your scores and review your corrections.</p>
+            </div>
+
+            <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary">
+                Back to Dashboard
+            </a>
+        </div>
+
+        <div class="admin-panel mt-4">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Mode</th>
+                        <th>Subject</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Action</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    {% for attempt in attempts %}
+                    <tr>
+                        <td>{{ attempt.started_at.strftime("%d %b %Y, %I:%M %p") }}</td>
+
+                        <td>
+                            {% if attempt.mode == "subject_practice" %}
+                            <span class="badge text-bg-primary">Subject Practice</span>
+                            {% elif attempt.mode == "full_mock" %}
+                            <span class="badge text-bg-dark">Full Mock</span>
+                            {% elif attempt.mode == "real_mock" %}
+                            <span class="badge text-bg-warning">Real Mock</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">{{ attempt.mode }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if attempt.subject %}
+                            {{ attempt.subject.name }}
+                            {% else %}
+                            Mixed Subjects
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <strong>{{ attempt.score }}/{{ attempt.total_questions }}</strong>
+                        </td>
+
+                        <td>
+                            <strong>{{ attempt.percentage|round(1) }}%</strong>
+                        </td>
+
+                        <td>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{{ url_for('student.result', attempt_id=attempt.id) }}"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    Result
+                                </a>
+
+                                <a href="{{ url_for('student.review_attempt', attempt_id=attempt.id) }}"
+                                   class="btn btn-sm btn-gold">
+                                    Review
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            You have not taken any practice yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

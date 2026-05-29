@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Subjects | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="dashboard-header">
+            <div>
+                <p class="hero-label">SUBJECT PRACTICE</p>
+                <h1>{{ exam_year.label or exam_year.year }}</h1>
+                <p>Choose a subject to practice from this question set.</p>
+            </div>
+
+            <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary">
+                Back to Dashboard
+            </a>
+        </div>
+
+        <div class="practice-card mt-4">
+            <h3>Available Subjects</h3>
+            <p>Only subjects with active questions are shown.</p>
+
+            <div class="subject-grid mt-3">
+                {% for subject in subjects %}
+                    <a href="{{ url_for('student.practice_setup', year_id=exam_year.id, subject_id=subject.id) }}"
+                       class="subject-card">
+                        <strong>{{ subject.name }}</strong>
+                        <span>{{ subject_counts[subject.id] }} active questions</span>
+                    </a>
+                {% else %}
+                    <div class="empty-state">
+                        No active subjects found for this practice set.
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

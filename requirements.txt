@@ -1,0 +1,7 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+python-dotenv
+pg8000
+Werkzeug
+email-validator

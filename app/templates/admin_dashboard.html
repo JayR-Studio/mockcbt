@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="dashboard-header">
+            <div>
+                <p class="hero-label">ADMIN PANEL</p>
+                <h1>Admin Dashboard</h1>
+                <p>Manage users and activation codes.</p>
+            </div>
+
+            <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary">
+                Student Dashboard
+            </a>
+        </div>
+
+        <div class="admin-panel mt-4">
+            <h4>Question Bank</h4>
+            <p class="text-muted">Manage questions for the CBT system.</p>
+
+            <a href="{{ url_for('admin.questions') }}" class="btn btn-outline-secondary">
+                Manage Questions
+            </a>
+        </div>
+
+        <div class="row g-4 mt-3">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <span>Total Users</span>
+                    <h3>{{ total_users }}</h3>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <span>Active Users</span>
+                    <h3>{{ active_users }}</h3>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <span>Total Codes</span>
+                    <h3>{{ total_codes }}</h3>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <span>Unused Codes</span>
+                    <h3>{{ unused_codes }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-panel mt-5">
+            <h4>Generate Activation Codes</h4>
+
+            <form method="POST" action="{{ url_for('admin.generate_codes') }}" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="col-md-4">
+                    <input type="number" name="quantity" class="form-control" min="1" max="100" value="1" required>
+                </div>
+
+                <div class="col-md-4">
+                    <button class="btn btn-gold w-100">Generate Codes</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="admin-panel mt-4">
+            <h4>Recent Activation Codes</h4>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Status</th>
+                        <th>Used By</th>
+                        <th>Created</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    {% for code in codes %}
+                    <tr>
+                        <td><strong>{{ code.code }}</strong></td>
+
+                        <td>
+                            {% if code.is_used %}
+                            <span class="badge text-bg-danger">Used</span>
+                            {% else %}
+                            <span class="badge text-bg-success">Unused</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if code.used_by %}
+                            {{ code.used_by.full_name }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+
+                        <td>{{ code.created_at.strftime("%d %b %Y") }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            No activation codes yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

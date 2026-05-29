@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Questions | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="dashboard-header">
+            <div>
+                <p class="hero-label">ADMIN PANEL</p>
+                <h1>Manage Questions</h1>
+                <p>Add, filter, and manage CBT questions.</p>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+
+                <a href="{{ url_for('admin.upload_questions') }}" class="btn btn-outline-secondary">
+                    Upload CSV
+                </a>
+
+                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">
+                    Back to Admin
+                </a>
+            </div>
+        </div>
+
+        <div class="admin-panel mt-4">
+            <h4>Filter Questions</h4>
+
+            <form method="GET" class="row g-3 mt-2">
+
+                <div class="col-md-3">
+                    <select name="year_id" class="form-control">
+                        <option value="">All Practice Sets</option>
+
+                        {% for exam_year in years %}
+                        <option value="{{ exam_year.id }}"
+                                {% if selected_year_id== exam_year.id %}selected{% endif %}>
+                            {{ exam_year.label or exam_year.year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <select name="subject_id" class="form-control">
+                        <option value="">All Subjects</option>
+
+                        {% for subject in subjects %}
+                        <option value="{{ subject.id }}"
+                                {% if selected_subject_id== subject.id %}selected{% endif %}>
+                            {{ subject.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <select name="status" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="active" {% if selected_status==
+                        "active" %}selected{% endif %}>
+                        Active
+                        </option>
+                        <option value="disabled" {% if selected_status==
+                        "disabled" %}selected{% endif %}>
+                        Disabled
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <input type="text"
+                           name="search"
+                           value="{{ search }}"
+                           class="form-control"
+                           placeholder="Search question">
+                </div>
+
+                <div class="col-md-1">
+                    <button class="btn btn-gold w-100">
+                        Filter
+                    </button>
+                </div>
+
+                <div class="col-md-1">
+                    <a href="{{ url_for('admin.questions') }}" class="btn btn-outline-secondary w-100">
+                        Reset
+                    </a>
+                </div>
+
+            </form>
+        </div>
+
+        <div class="admin-panel mt-4">
+            <h4>Disable Practice Set</h4>
+            <p class="text-muted">
+                Use this when you want to remove all questions from a bad upload without breaking old student results.
+            </p>
+
+            <form method="POST"
+                  action="{{ url_for('admin.disable_question_set') }}"
+                  class="row g-3"
+                  onsubmit="return confirm('This will disable all active questions under this practice set. Continue?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="col-md-8">
+                    <select name="year_id" class="form-control" required>
+                        <option value="">Select practice set</option>
+
+                        {% for exam_year in years %}
+                        <option value="{{ exam_year.id }}">
+                            {{ exam_year.label or exam_year.year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <button class="btn btn-outline-danger w-100">
+                        Disable Practice Set
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="admin-panel mt-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h4 class="mb-0">Questions</h4>
+                <span class="badge text-bg-secondary">
+                    {{ pagination.total }} result(s)
+                </span>
+            </div>
+
+            <div class="table-responsive mt-3">
+                <table class="table align-middle">
+                    <thead>
+                    <tr>
+                        <th>Year</th>
+                        <th>Subject</th>
+                        <th>Question</th>
+                        <th>Correct</th>
+                        <th>Difficulty</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    {% for question in questions %}
+                    <tr>
+                        <td>{{ question.exam_year.label or question.exam_year.year }}</td>
+
+                        <td>{{ question.subject.name }}</td>
+
+                        <td>
+                            {{ question.question_text[:90] }}
+                            {% if question.question_text|length > 90 %}...{% endif %}
+                        </td>
+
+                        <td>
+                                <span class="badge text-bg-success">
+                                    {{ question.correct_option }}
+                                </span>
+                        </td>
+
+                        <td>{{ question.difficulty|capitalize }}</td>
+
+                        <td>
+                            {% if question.is_active %}
+                            <span class="badge text-bg-success">Active</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">Disabled</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                        <td>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{{ url_for('admin.question_detail', question_id=question.id) }}"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    Preview
+                                </a>
+
+                                {% if question.is_active %}
+                                <form method="POST"
+                                      action="{{ url_for('admin.delete_question', question_id=question.id) }}"
+                                      onsubmit="return confirm('Disable this question? It will no longer appear in exams.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        Disable
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="POST"
+                                      action="{{ url_for('admin.restore_question', question_id=question.id) }}"
+                                      onsubmit="return confirm('Restore this question? It will appear in exams again.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                    <button class="btn btn-sm btn-outline-success">
+                                        Restore
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">
+                            No questions added yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% if pagination.pages > 1 %}
+                <nav class="mt-4">
+                    <ul class="pagination flex-wrap">
+
+                        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                            <a class="page-link"
+                               href="{{ url_for('admin.questions',
+                                page=pagination.prev_num,
+                                year_id=selected_year_id,
+                                subject_id=selected_subject_id,
+                                status=selected_status,
+                                search=search) }}">
+                                Previous
+                            </a>
+                        </li>
+
+                        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2,
+                        right_current=2) %}
+                        {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link"
+                               href="{{ url_for('admin.questions',
+                                        page=page_num,
+                                        year_id=selected_year_id,
+                                        subject_id=selected_subject_id,
+                                        status=selected_status,
+                                        search=search) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">…</span>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                            <a class="page-link"
+                               href="{{ url_for('admin.questions',
+                                page=pagination.next_num,
+                                year_id=selected_year_id,
+                                subject_id=selected_subject_id,
+                                status=selected_status,
+                                search=search) }}">
+                                Next
+                            </a>
+                        </li>
+
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

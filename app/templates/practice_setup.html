@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Practice Setup | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="dashboard-header">
+            <div>
+                <p class="hero-label">PRACTICE SETUP</p>
+                <h1>{{ subject.name }}</h1>
+                <p>{{ exam_year.label or exam_year.year }} — choose your question count and duration.</p>
+            </div>
+
+            <a href="{{ url_for('student.year_subjects', year_id=exam_year.id) }}" class="btn btn-outline-secondary">
+                Back to Subjects
+            </a>
+        </div>
+
+        <div class="practice-card mt-4">
+            <div class="setup-info">
+                <h4>Available Questions</h4>
+                <p>{{ total_questions }} active question(s) available for this subject.</p>
+            </div>
+
+            {% if total_questions > 0 %}
+                <form method="POST" class="mt-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label">Number of Questions</label>
+                        <select name="question_count" class="form-control" required>
+                            <option value="">Select number of questions</option>
+
+                            {% if total_questions >= 5 %}
+                                <option value="5">5 Questions</option>
+                            {% endif %}
+
+                            {% if total_questions >= 10 %}
+                                <option value="10">10 Questions</option>
+                            {% endif %}
+
+                            {% if total_questions >= 20 %}
+                                <option value="20">20 Questions</option>
+                            {% endif %}
+
+                            {% if total_questions >= 30 %}
+                                <option value="30">30 Questions</option>
+                            {% endif %}
+
+                            <option value="{{ total_questions }}">
+                                All Available Questions
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Duration</label>
+                        <select name="duration" class="form-control" required>
+                            <option value="">Select duration</option>
+                            <option value="5">5 Minutes</option>
+                            <option value="10">10 Minutes</option>
+                            <option value="15">15 Minutes</option>
+                            <option value="20">20 Minutes</option>
+                            <option value="30">30 Minutes</option>
+                            <option value="45">45 Minutes</option>
+                            <option value="60">60 Minutes</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-gold w-100">
+                        Start Subject Practice
+                    </button>
+                </form>
+            {% else %}
+                <div class="empty-state mt-4">
+                    No active questions available for this subject.
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+{% endblock %}

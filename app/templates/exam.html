@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Exam | MockCBT{% endblock %}
+
+{% block content %}
+<section class="exam-section">
+
+    <div class="exam-topbar">
+        <div>
+            <strong>
+                {% if subject %}
+                {{ subject.name }}
+                {% if exam_year %}
+                - {{ exam_year.year }}
+                {% endif %}
+                {% else %}
+                {{ exam_title or "Full Mock Exam" }}
+                {% if exam_year %}
+                - {{ exam_year.year }}
+                {% endif %}
+                {% endif %}
+            </strong>
+            <span>Question <span id="currentQuestion">1</span>/{{ questions|length }}</span>
+        </div>
+
+        <div class="exam-timer">
+            Time Left: <span id="timer">{{ duration }}:00</span>
+        </div>
+    </div>
+
+    <form method="POST"
+          action="{{ url_for('student.submit_exam', attempt_id=attempt.id) }}"
+          id="examForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="exam-container">
+
+            {% for question in questions %}
+            <div class="question-card {% if not loop.first %}d-none{% endif %}"
+                 data-question-index="{{ loop.index }}"
+                 id="question-card-{{ loop.index }}">
+
+                <input type="hidden" name="question_ids" value="{{ question.id }}">
+
+                <p class="question-number">Question {{ loop.index }}</p>
+
+                <h3 class="question-text">
+                    {{ question.question_text }}
+                </h3>
+
+                <div class="options-list">
+
+                    <label class="option-card">
+                        <input type="radio" name="question_{{ question.id }}" value="A">
+                        <span>A. {{ question.option_a }}</span>
+                    </label>
+
+                    <label class="option-card">
+                        <input type="radio" name="question_{{ question.id }}" value="B">
+                        <span>B. {{ question.option_b }}</span>
+                    </label>
+
+                    <label class="option-card">
+                        <input type="radio" name="question_{{ question.id }}" value="C">
+                        <span>C. {{ question.option_c }}</span>
+                    </label>
+
+                    <label class="option-card">
+                        <input type="radio" name="question_{{ question.id }}" value="D">
+                        <span>D. {{ question.option_d }}</span>
+                    </label>
+
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="exam-controls">
+                <button type="button" class="btn btn-outline-secondary" id="prevBtn">
+                    Previous
+                </button>
+
+                <button type="button" class="btn btn-gold" id="nextBtn">
+                    Next
+                </button>
+            </div>
+
+            <div class="question-palette">
+                {% for question in questions %}
+                <button type="button"
+                        class="palette-btn {% if loop.first %}active{% endif %}"
+                        data-target="{{ loop.index }}">
+                    {{ loop.index }}
+                </button>
+                {% endfor %}
+            </div>
+
+            <button type="submit"
+                    class="btn btn-danger w-100 mt-4"
+                    onclick="return confirm('Are you sure you want to submit this exam?');">
+                Submit Exam
+            </button>
+
+        </div>
+    </form>
+
+</section>
+
+<script>
+    const totalQuestions = {{ questions|length }};
+    let currentQuestion = 1;
+
+    const questionCards = document.querySelectorAll(".question-card");
+    const paletteButtons = document.querySelectorAll(".palette-btn");
+    const currentQuestionText = document.getElementById("currentQuestion");
+
+    function showQuestion(index) {
+        questionCards.forEach(card => card.classList.add("d-none"));
+
+        const activeCard = document.getElementById(`question-card-${index}`);
+        activeCard.classList.remove("d-none");
+
+        paletteButtons.forEach(button => button.classList.remove("active"));
+
+        const activePalette = document.querySelector(`.palette-btn[data-target="${index}"]`);
+        activePalette.classList.add("active");
+
+        currentQuestion = index;
+        currentQuestionText.textContent = index;
+    }
+
+    document.getElementById("nextBtn").addEventListener("click", function () {
+        if (currentQuestion < totalQuestions) {
+            showQuestion(currentQuestion + 1);
+        }
+    });
+
+    document.getElementById("prevBtn").addEventListener("click", function () {
+        if (currentQuestion > 1) {
+            showQuestion(currentQuestion - 1);
+        }
+    });
+
+    paletteButtons.forEach(button => {
+        button.addEventListener("click", function () {
+            showQuestion(parseInt(this.dataset.target));
+        });
+    });
+
+    document.querySelectorAll("input[type='radio']").forEach(input => {
+        input.addEventListener("change", function () {
+            const card = this.closest(".question-card");
+            const index = card.dataset.questionIndex;
+            const palette = document.querySelector(`.palette-btn[data-target="${index}"]`);
+
+            palette.classList.add("answered");
+        });
+    });
+
+    let timeLeft = {{ duration }} * 60;
+    const timerElement = document.getElementById("timer");
+    const examForm = document.getElementById("examForm");
+
+    const timerInterval = setInterval(function () {
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+
+        timerElement.textContent =
+            `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            alert("Time is up. Your exam will be submitted automatically.");
+            examForm.submit();
+        }
+
+        timeLeft--;
+    }, 1000);
+</script>
+{% endblock %}
