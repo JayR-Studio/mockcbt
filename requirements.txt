@@ -5,3 +5,4 @@ python-dotenv
 pg8000
 Werkzeug
 email-validator
+Flask-WTF==1.2.1
