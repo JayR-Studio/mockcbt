@@ -43,6 +43,7 @@
 
                     {% if years %}
                         <form method="POST" class="mt-4">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                             <div class="mb-3">
                                 <label class="form-label">Practice Set</label>
