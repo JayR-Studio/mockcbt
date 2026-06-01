@@ -18,6 +18,8 @@ class User(UserMixin, db.Model):
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)
 
+    active_session_token = db.Column(db.String(255), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     attempts = db.relationship("ExamAttempt", backref="user", lazy=True)
@@ -100,7 +102,7 @@ class ExamAttempt(db.Model):
     total_questions = db.Column(db.Integer, default=0)
     percentage = db.Column(db.Float, default=0)
 
-    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, default=datetime.now)
     submitted_at = db.Column(db.DateTime, nullable=True)
 
     answers = db.relationship("UserAnswer", backref="attempt", lazy=True)
@@ -116,4 +118,24 @@ class UserAnswer(db.Model):
     selected_option = db.Column(db.String(1), nullable=True)
     is_correct = db.Column(db.Boolean, default=False)
 
-    answered_at = db.Column(db.DateTime, default=datetime.utcnow)
+    answered_at = db.Column(db.DateTime, default=datetime.now)
+
+
+class PasswordResetRequest(db.Model):
+    __tablename__ = "password_reset_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user = db.relationship("User", backref="password_reset_requests")
+
+    identifier_used = db.Column(db.String(120), nullable=False)
+
+    token_hash = db.Column(db.String(255), nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    used_at = db.Column(db.DateTime, nullable=True)
+
+    status = db.Column(db.String(30), default="pending")
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    resolved_at = db.Column(db.DateTime, nullable=True)

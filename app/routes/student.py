@@ -1,6 +1,7 @@
 import random
 from datetime import datetime
 
+from flask_login import logout_user
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_required, current_user
 
@@ -9,6 +10,19 @@ from app.models import ActivationCode, Subject, Question, ExamAttempt, UserAnswe
 
 
 student_bp = Blueprint("student", __name__)
+
+
+def valid_active_session():
+    if not current_user.is_authenticated:
+        return False
+
+    if session.get("session_token") != current_user.active_session_token:
+        logout_user()
+        session.pop("session_token", None)
+        flash("Your account was logged in on another device. Please login again.", "warning")
+        return False
+
+    return True
 
 
 def student_context_required():
@@ -22,6 +36,9 @@ def student_context_required():
 @student_bp.route("/activate", methods=["GET", "POST"])
 @login_required
 def activate():
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -57,6 +74,9 @@ def activate():
 @student_bp.route("/dashboard")
 @login_required
 def dashboard():
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -110,6 +130,9 @@ def dashboard():
 @student_bp.route("/exam/<int:attempt_id>/submit", methods=["POST"])
 @login_required
 def submit_exam(attempt_id):
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -160,6 +183,9 @@ def submit_exam(attempt_id):
 @student_bp.route("/result/<int:attempt_id>")
 @login_required
 def result(attempt_id):
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -217,6 +243,9 @@ def result(attempt_id):
 @student_bp.route("/attempt/<int:attempt_id>/review")
 @login_required
 def review_attempt(attempt_id):
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -245,6 +274,9 @@ def review_attempt(attempt_id):
 @student_bp.route("/attempts")
 @login_required
 def attempts():
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -264,6 +296,9 @@ def attempts():
 @student_bp.route("/full-mock/setup", methods=["GET", "POST"])
 @login_required
 def full_mock_setup():
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -321,6 +356,9 @@ def full_mock_setup():
 @student_bp.route("/full-mock/start")
 @login_required
 def start_full_mock():
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -433,6 +471,9 @@ def start_full_mock():
 @student_bp.route("/year/<int:year_id>/subjects")
 @login_required
 def year_subjects(year_id):
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -473,6 +514,9 @@ def year_subjects(year_id):
 @student_bp.route("/practice/year/<int:year_id>/subject/<int:subject_id>", methods=["GET", "POST"])
 @login_required
 def practice_setup(year_id, subject_id):
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
@@ -527,6 +571,9 @@ def practice_setup(year_id, subject_id):
 @student_bp.route("/practice/year/<int:year_id>/subject/<int:subject_id>/start")
 @login_required
 def start_subject_practice(year_id, subject_id):
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
     if not student_context_required():
         return redirect(url_for("auth.login"))
 

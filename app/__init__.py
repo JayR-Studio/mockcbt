@@ -1,6 +1,6 @@
 from flask import Flask
 from config import Config
-from app.extensions import db, login_manager, csrf
+from app.extensions import db, login_manager, csrf, mail
 
 
 def create_app():
@@ -10,6 +10,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    mail.init_app(app)
 
     from app.routes.public import public_bp
     app.register_blueprint(public_bp)
