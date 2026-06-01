@@ -42,6 +42,40 @@
 
             </div>
 
+            {% if subject_breakdown %}
+            <div class="subject-result-panel mt-4">
+                <h3>Subject Performance</h3>
+                <p class="text-muted">
+                    See where you performed well and where you need more practice.
+                </p>
+
+                <div class="subject-result-list">
+                    {% for subject_name, data in subject_breakdown.items() %}
+                    <div class="subject-result-item">
+                        <div>
+                            <strong>{{ subject_name }}</strong>
+                            <span>
+                        {{ data.correct }}/{{ data.total }} correct
+                    </span>
+                        </div>
+
+                        <div class="subject-score-block">
+                            <strong>{{ data.percentage|round(1) }}%</strong>
+
+                            {% if data.percentage >= 70 %}
+                            <small class="performance-good">Strong</small>
+                            {% elif data.percentage >= 50 %}
+                            <small class="performance-average">Fair</small>
+                            {% else %}
+                            <small class="performance-poor">Needs Work</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="mt-4 d-flex gap-2 flex-wrap">
                 <a href="{{ url_for('student.dashboard') }}" class="btn btn-gold">
                     Back to Dashboard

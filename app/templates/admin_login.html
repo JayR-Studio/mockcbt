@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login | MockCBT{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card">
+        <p class="hero-label">ADMIN ACCESS</p>
+        <h2>Admin Login</h2>
+        <p>Login to manage questions, users, and activation codes.</p>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <input type="text"
+                   name="identifier"
+                   class="form-control mb-3"
+                   placeholder="Admin email or phone number"
+                   required>
+
+            <input type="password"
+                   name="password"
+                   class="form-control mb-3"
+                   placeholder="Password"
+                   required>
+
+            <button class="btn btn-gold w-100">
+                Login as Admin
+            </button>
+        </form>
+
+        <p class="auth-link">
+            Student?
+            <a href="{{ url_for('auth.login') }}">Login here</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

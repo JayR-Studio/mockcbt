@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -83,7 +83,14 @@ def login():
         user.locked_until = None
         db.session.commit()
 
+        if user.is_admin:
+            flash("Admins should login from the admin login page.", "warning")
+            return redirect(url_for("admin.admin_login"))
+
         login_user(user)
+
+        session["login_context"] = "student"
+
         flash("Login successful.", "success")
 
         if user.is_active_user:
@@ -98,5 +105,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash("You have logged out.", "info")
-    return redirect(url_for("auth.login"))
+    session.clear()
+
+    flash("You have been logged out.", "success")
+    return redirect(url_for("public.index"))

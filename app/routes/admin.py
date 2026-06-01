@@ -6,10 +6,9 @@ from io import TextIOWrapper
 from dotenv import load_dotenv
 
 load_dotenv()
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from flask_login import login_user, logout_user
 from werkzeug.security import generate_password_hash
-from flask_login import login_user
-
-from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
 from app.extensions import db
@@ -20,15 +19,72 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
 def admin_required():
-    if not current_user.is_authenticated or not current_user.is_admin:
+    if not current_user.is_authenticated:
+        flash("Please login as admin.", "warning")
+        return False
+
+    if session.get("login_context") != "admin":
+        flash("Please login through the admin login page.", "warning")
+        return False
+
+    if not current_user.is_admin:
         flash("Admin access required.", "danger")
         return False
+
     return True
 
 
 def generate_code(length=10):
     characters = string.ascii_uppercase + string.digits
     return "".join(secrets.choice(characters) for _ in range(length))
+
+
+@admin_bp.route("/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        email = request.form.get("identifier", "").strip().lower()
+        password = request.form.get("password", "")
+
+        admin_email = os.getenv("ADMIN_EMAIL")
+        admin_password = os.getenv("ADMIN_PASSWORD")
+
+        if not admin_email or not admin_password:
+            flash("Admin credentials are not configured.", "danger")
+            return redirect(url_for("admin.admin_login"))
+
+        if email != admin_email or password != admin_password:
+            flash("Invalid admin login details.", "danger")
+            return redirect(url_for("admin.admin_login"))
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user:
+            user = User(
+                full_name="Admin",
+                email=email,
+                phone_number="admin",
+                password_hash=generate_password_hash(password),
+                is_admin=True,
+                is_active_user=True
+            )
+            db.session.add(user)
+        else:
+            user.is_admin = True
+            user.is_active_user = True
+            user.password_hash = generate_password_hash(password)
+
+        db.session.commit()
+
+        logout_user()
+        session.clear()
+
+        login_user(user)
+        session["login_context"] = "admin"
+
+        flash("Admin login successful.", "success")
+        return redirect(url_for("admin.dashboard"))
+
+    return render_template("admin_login.html")
 
 
 @admin_bp.route("/")
@@ -75,44 +131,6 @@ def generate_codes():
 
     flash(f"{quantity} activation code(s) generated successfully.", "success")
     return redirect(url_for("admin.dashboard"))
-
-
-@admin_bp.route("/setup", methods=["GET", "POST"])
-def admin_setup():
-    if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
-
-        admin_email = os.getenv("ADMIN_EMAIL")
-        admin_password = os.getenv("ADMIN_PASSWORD")
-
-        if email != admin_email or password != admin_password:
-            flash("Invalid admin setup details.", "danger")
-            return redirect(url_for("admin.admin_setup"))
-
-        user = User.query.filter_by(email=email).first()
-
-        if not user:
-            user = User(
-                full_name="Admin",
-                email=email,
-                phone_number="admin",
-                password_hash=generate_password_hash(password),
-                is_admin=True,
-                is_active_user=True
-            )
-            db.session.add(user)
-        else:
-            user.is_admin = True
-            user.is_active_user = True
-
-        db.session.commit()
-        login_user(user)
-
-        flash("Admin access granted.", "success")
-        return redirect(url_for("admin.dashboard"))
-
-    return render_template("admin_setup.html")
 
 
 @admin_bp.route("/questions")

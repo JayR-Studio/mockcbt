@@ -2,7 +2,7 @@ Flask
 Flask-SQLAlchemy
 Flask-Login
 python-dotenv
-pg8000
+psycopg2-binary==2.9.9
 Werkzeug
 email-validator
 Flask-WTF==1.2.1
