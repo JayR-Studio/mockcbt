@@ -430,6 +430,12 @@ def start_full_mock():
     question_count = request.args.get("question_count", type=int)
     duration = request.args.get("duration", type=int)
 
+    allowed_durations = [10, 20, 30, 45, 60, 90]
+
+    if duration not in allowed_durations:
+        flash("Invalid exam duration selected.", "danger")
+        return redirect(url_for("student.full_mock_setup"))
+
     if not year_id or not question_count or not duration:
         flash("Invalid full mock setup.", "danger")
         return redirect(url_for("student.full_mock_setup"))
@@ -660,6 +666,16 @@ def start_subject_practice(year_id, subject_id):
 
     question_count = request.args.get("question_count", type=int)
     duration = request.args.get("duration", type=int)
+
+    allowed_durations = [5, 10, 15, 20, 30, 45, 60]
+
+    if duration not in allowed_durations:
+        flash("Invalid exam duration selected.", "danger")
+        return redirect(url_for(
+            "student.practice_setup",
+            year_id=year_id,
+            subject_id=subject_id
+        ))
 
     if not question_count or not duration:
         flash("Invalid practice setup.", "danger")
