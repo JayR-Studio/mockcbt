@@ -48,6 +48,18 @@
             </div>
         </div>
 
+        {% if active_attempt %}
+        <div class="alert alert-warning mt-4">
+            <strong>You have an unfinished exam.</strong>
+            Continue it before starting another one.
+
+            <a href="{{ url_for('student.take_exam', attempt_id=active_attempt.id) }}"
+               class="btn btn-sm btn-gold ms-2">
+                Resume Exam
+            </a>
+        </div>
+        {% endif %}
+
         <div class="student-action-section mt-4">
 
             <div class="section-header-mini">

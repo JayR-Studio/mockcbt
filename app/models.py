@@ -94,6 +94,10 @@ class ExamAttempt(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
     mode = db.Column(db.String(50), nullable=False)
+
+    exam_year_id = db.Column(db.Integer, db.ForeignKey("exam_years.id"), nullable=True)
+    exam_year = db.relationship("ExamYear", backref="attempts")
+
     subject_id = db.Column(db.Integer, db.ForeignKey("subjects.id"), nullable=True)
 
     subject = db.relationship("Subject", backref="attempts")
@@ -101,6 +105,8 @@ class ExamAttempt(db.Model):
     score = db.Column(db.Integer, default=0)
     total_questions = db.Column(db.Integer, default=0)
     percentage = db.Column(db.Float, default=0)
+
+    duration_minutes = db.Column(db.Integer, nullable=True)
 
     started_at = db.Column(db.DateTime, default=datetime.now)
     submitted_at = db.Column(db.DateTime, nullable=True)

@@ -33,6 +33,58 @@ def student_context_required():
     return True
 
 
+def get_active_attempt():
+    return (
+        ExamAttempt.query
+        .filter_by(user_id=current_user.id, submitted_at=None)
+        .order_by(ExamAttempt.started_at.desc())
+        .first()
+    )
+
+
+def get_remaining_seconds(attempt):
+    if not attempt.duration_minutes:
+        return 0
+
+    elapsed_seconds = (datetime.utcnow() - attempt.started_at).total_seconds()
+    total_seconds = attempt.duration_minutes * 60
+
+    remaining = int(total_seconds - elapsed_seconds)
+
+    return max(remaining, 0)
+
+
+def get_attempt_questions(attempt):
+    answers = (
+        UserAnswer.query
+        .filter_by(attempt_id=attempt.id)
+        .order_by(UserAnswer.id.asc())
+        .all()
+    )
+
+    return [answer.question for answer in answers]
+
+
+def render_exam_attempt(attempt):
+    questions = get_attempt_questions(attempt)
+    remaining_seconds = get_remaining_seconds(attempt)
+
+    if remaining_seconds <= 0:
+        flash("Your exam time has expired. Please submit your exam.", "warning")
+
+    exam_title = "Full Mock Exam" if attempt.mode == "full_mock" else "Subject Practice"
+
+    return render_template(
+        "exam.html",
+        attempt=attempt,
+        subject=attempt.subject,
+        exam_year=attempt.exam_year,
+        questions=questions,
+        remaining_seconds=remaining_seconds,
+        exam_title=exam_title
+    )
+
+
 @student_bp.route("/activate", methods=["GET", "POST"])
 @login_required
 def activate():
@@ -116,6 +168,8 @@ def dashboard():
         .count()
     )
 
+    active_attempt = get_active_attempt()
+
     return render_template(
         "dashboard.html",
         years=years,
@@ -123,7 +177,8 @@ def dashboard():
         best_attempt=best_attempt,
         last_attempt=last_attempt,
         questions_practiced=questions_practiced,
-        year_question_counts=year_question_counts
+        year_question_counts=year_question_counts,
+        active_attempt=active_attempt
     )
 
 
@@ -145,28 +200,22 @@ def submit_exam(attempt_id):
         flash("You are not allowed to submit this exam.", "danger")
         return redirect(url_for("student.dashboard"))
 
-    question_ids = request.form.getlist("question_ids")
+    if attempt.submitted_at:
+        flash("This exam has already been submitted.", "warning")
+        return redirect(url_for("student.result", attempt_id=attempt.id))
+
+    answers = UserAnswer.query.filter_by(attempt_id=attempt.id).all()
 
     score = 0
-    total_questions = len(question_ids)
+    total_questions = len(answers)
 
-    for question_id in question_ids:
-        question = Question.query.get(int(question_id))
-        selected_option = request.form.get(f"question_{question_id}")
+    for answer in answers:
+        selected_option = request.form.get(f"question_{answer.question_id}")
+        answer.selected_option = selected_option
+        answer.is_correct = selected_option == answer.question.correct_option
 
-        is_correct = selected_option == question.correct_option
-
-        if is_correct:
+        if answer.is_correct:
             score += 1
-
-        answer = UserAnswer(
-            attempt_id=attempt.id,
-            question_id=question.id,
-            selected_option=selected_option,
-            is_correct=is_correct
-        )
-
-        db.session.add(answer)
 
     percentage = (score / total_questions) * 100 if total_questions > 0 else 0
 
@@ -320,6 +369,12 @@ def full_mock_setup():
         question_count = request.form.get("question_count", type=int)
         duration = request.form.get("duration", type=int)
 
+        allowed_durations = [10, 20, 30, 45, 60, 90]
+
+        if duration not in allowed_durations:
+            flash("Invalid exam duration selected.", "danger")
+            return redirect(request.referrer or url_for("student.dashboard"))
+
         if not year_id or not question_count or not duration:
             flash("Please select practice set, number of questions, and duration.", "danger")
             return redirect(url_for("student.full_mock_setup"))
@@ -364,6 +419,12 @@ def start_full_mock():
 
     if not current_user.is_active_user:
         return redirect(url_for("student.activate"))
+
+    active_attempt = get_active_attempt()
+
+    if active_attempt:
+        flash("You already have an unfinished exam. Continue it before starting a new one.", "warning")
+        return redirect(url_for("student.take_exam", attempt_id=active_attempt.id))
 
     year_id = request.args.get("year_id", type=int)
     question_count = request.args.get("question_count", type=int)
@@ -449,23 +510,28 @@ def start_full_mock():
     attempt = ExamAttempt(
         user_id=current_user.id,
         mode="full_mock",
+        exam_year_id=exam_year.id,
         subject_id=None,
         total_questions=len(selected_questions),
-        started_at=datetime.utcnow()
+        duration_minutes=duration,
+        started_at=datetime.now()
     )
 
     db.session.add(attempt)
+    db.session.flush()
+
+    for question in selected_questions:
+        answer = UserAnswer(
+            attempt_id=attempt.id,
+            question_id=question.id,
+            selected_option=None,
+            is_correct=False
+        )
+        db.session.add(answer)
+
     db.session.commit()
 
-    return render_template(
-        "exam.html",
-        attempt=attempt,
-        subject=None,
-        exam_year=exam_year,
-        questions=selected_questions,
-        duration=duration,
-        exam_title="Full Mock Exam"
-    )
+    return redirect(url_for("student.take_exam", attempt_id=attempt.id))
 
 
 @student_bp.route("/year/<int:year_id>/subjects")
@@ -536,6 +602,12 @@ def practice_setup(year_id, subject_id):
         question_count = request.form.get("question_count", type=int)
         duration = request.form.get("duration", type=int)
 
+        allowed_durations = [5, 10, 15, 20, 30, 45, 60]
+
+        if duration not in allowed_durations:
+            flash("Invalid exam duration selected.", "danger")
+            return redirect(request.referrer or url_for("student.dashboard"))
+
         if not question_count or not duration:
             flash("Please select number of questions and duration.", "danger")
             return redirect(url_for(
@@ -580,6 +652,12 @@ def start_subject_practice(year_id, subject_id):
     if not current_user.is_active_user:
         return redirect(url_for("student.activate"))
 
+    active_attempt = get_active_attempt()
+
+    if active_attempt:
+        flash("You already have an unfinished exam. Continue it before starting a new one.", "warning")
+        return redirect(url_for("student.take_exam", attempt_id=active_attempt.id))
+
     question_count = request.args.get("question_count", type=int)
     duration = request.args.get("duration", type=int)
 
@@ -613,20 +691,49 @@ def start_subject_practice(year_id, subject_id):
     attempt = ExamAttempt(
         user_id=current_user.id,
         mode="subject_practice",
+        exam_year_id=exam_year.id,
         subject_id=subject.id,
-        total_questions=question_count,
+        total_questions=len(selected_questions),
+        duration_minutes=duration,
         started_at=datetime.utcnow()
     )
 
     db.session.add(attempt)
+    db.session.flush()
+
+    for question in selected_questions:
+        answer = UserAnswer(
+            attempt_id=attempt.id,
+            question_id=question.id,
+            selected_option=None,
+            is_correct=False
+        )
+        db.session.add(answer)
+
     db.session.commit()
 
-    return render_template(
-        "exam.html",
-        attempt=attempt,
-        subject=subject,
-        exam_year=exam_year,
-        questions=selected_questions,
-        duration=duration,
-        exam_title="Subject Practice"
-    )
+    return redirect(url_for("student.take_exam", attempt_id=attempt.id))
+
+
+@student_bp.route("/exam/<int:attempt_id>")
+@login_required
+def take_exam(attempt_id):
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
+    if not student_context_required():
+        return redirect(url_for("auth.login"))
+
+    if not current_user.is_active_user:
+        return redirect(url_for("student.activate"))
+
+    attempt = ExamAttempt.query.get_or_404(attempt_id)
+
+    if attempt.user_id != current_user.id:
+        flash("You are not allowed to access this exam.", "danger")
+        return redirect(url_for("student.dashboard"))
+
+    if attempt.submitted_at:
+        return redirect(url_for("student.result", attempt_id=attempt.id))
+
+    return render_exam_attempt(attempt)
