@@ -145,3 +145,24 @@ class PasswordResetRequest(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     resolved_at = db.Column(db.DateTime, nullable=True)
+
+
+class PaymentTransaction(db.Model):
+    __tablename__ = "payment_transactions"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user = db.relationship("User", backref="payment_transactions")
+
+    reference = db.Column(db.String(120), unique=True, nullable=False)
+    amount_kobo = db.Column(db.Integer, nullable=False)
+
+    status = db.Column(db.String(30), default="initialized")
+    provider = db.Column(db.String(30), default="paystack")
+
+    authorization_url = db.Column(db.Text, nullable=True)
+    gateway_response = db.Column(db.String(255), nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    verified_at = db.Column(db.DateTime, nullable=True)

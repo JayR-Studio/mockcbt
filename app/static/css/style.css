@@ -1468,3 +1468,27 @@ body {
     padding: 0.8rem;
     border-radius: 0.8rem;
 }
+
+.paid-code-box {
+    background: #ECFDF5;
+    border: 1px solid #BBF7D0;
+    color: #065F46;
+    padding: 1rem;
+    border-radius: 1rem;
+    margin: 1rem 0;
+}
+
+.paid-code-box small {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.paid-code-box strong {
+    display: block;
+    font-size: 1rem;
+    font-weight: 900;
+    margin-top: 0.25rem;
+}

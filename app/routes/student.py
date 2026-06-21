@@ -1,12 +1,14 @@
 import random
+import secrets
+import requests
 from datetime import datetime
 
 from flask_login import logout_user
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import ActivationCode, Subject, Question, ExamAttempt, UserAnswer, ExamYear
+from app.models import ActivationCode, Subject, Question, ExamAttempt, UserAnswer, ExamYear, PaymentTransaction
 
 
 student_bp = Blueprint("student", __name__)
@@ -85,6 +87,28 @@ def render_exam_attempt(attempt):
     )
 
 
+def get_activation_amount_kobo():
+    return current_app.config.get("ACTIVATION_AMOUNT_KOBO", 200000)
+
+
+def get_pending_payment():
+    return (
+        PaymentTransaction.query
+        .filter_by(user_id=current_user.id, status="initialized")
+        .order_by(PaymentTransaction.created_at.desc())
+        .first()
+    )
+
+
+def get_successful_payment():
+    return (
+        PaymentTransaction.query
+        .filter_by(user_id=current_user.id, status="success")
+        .order_by(PaymentTransaction.verified_at.desc())
+        .first()
+    )
+
+
 @student_bp.route("/activate", methods=["GET", "POST"])
 @login_required
 def activate():
@@ -120,7 +144,216 @@ def activate():
         flash("Account activated successfully.", "success")
         return redirect(url_for("student.dashboard"))
 
-    return render_template("activation.html")
+    pending_payment = get_pending_payment()
+    successful_payment = get_successful_payment()
+
+    return render_template(
+        "activation.html",
+        pending_payment=pending_payment,
+        successful_payment=successful_payment
+    )
+
+
+@student_bp.route("/payment/start", methods=["POST"])
+@login_required
+def start_payment():
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
+    if not student_context_required():
+        return redirect(url_for("auth.login"))
+
+    if current_user.is_active_user:
+        flash("Your account is already activated.", "success")
+        return redirect(url_for("student.dashboard"))
+
+    successful_payment = get_successful_payment()
+
+    if successful_payment:
+        current_user.is_active_user = True
+        db.session.commit()
+
+        flash("Payment already confirmed. Your account is now active.", "success")
+        return redirect(url_for("student.dashboard"))
+
+    pending_payment = get_pending_payment()
+
+    if pending_payment and pending_payment.authorization_url:
+        flash("You already have a pending payment. Continue from where you stopped.", "warning")
+        return redirect(pending_payment.authorization_url)
+
+    paystack_secret_key = current_app.config.get("PAYSTACK_SECRET_KEY")
+
+    if not paystack_secret_key:
+        flash("Payment system is not configured yet.", "danger")
+        return redirect(url_for("student.activate"))
+
+    amount_kobo = get_activation_amount_kobo()
+    reference = f"MCBT-{current_user.id}-{secrets.token_hex(10)}"
+
+    callback_url = url_for("student.payment_callback", _external=True)
+
+    payload = {
+        "email": current_user.email,
+        "amount": amount_kobo,
+        "reference": reference,
+        "callback_url": callback_url,
+        "currency": "NGN",
+        "metadata": {
+            "user_id": current_user.id,
+            "full_name": current_user.full_name,
+            "purpose": "MockCBT account activation"
+        }
+    }
+
+    headers = {
+        "Authorization": f"Bearer {paystack_secret_key}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.post(
+            "https://api.paystack.co/transaction/initialize",
+            json=payload,
+            headers=headers,
+            timeout=20
+        )
+
+        result = response.json()
+
+        if not response.ok or not result.get("status"):
+            flash("Unable to start payment. Please try again.", "danger")
+            return redirect(url_for("student.activate"))
+
+        authorization_url = result["data"]["authorization_url"]
+
+        transaction = PaymentTransaction(
+            user_id=current_user.id,
+            reference=reference,
+            amount_kobo=amount_kobo,
+            status="initialized",
+            authorization_url=authorization_url
+        )
+
+        db.session.add(transaction)
+        db.session.commit()
+
+        return redirect(authorization_url)
+
+    except Exception:
+        db.session.rollback()
+        flash("Payment could not be started at this time. Please try again.", "danger")
+        return redirect(url_for("student.activate"))
+
+
+@student_bp.route("/payment/callback")
+@login_required
+def payment_callback():
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
+    if not student_context_required():
+        return redirect(url_for("auth.login"))
+
+    reference = request.args.get("reference") or request.args.get("trxref")
+
+    if not reference:
+        flash("Payment reference missing.", "danger")
+        return redirect(url_for("student.activate"))
+
+    transaction = PaymentTransaction.query.filter_by(
+        reference=reference,
+        user_id=current_user.id
+    ).first()
+
+    if not transaction:
+        flash("Payment record not found.", "danger")
+        return redirect(url_for("student.activate"))
+
+    if transaction.status == "success":
+        current_user.is_active_user = True
+        db.session.commit()
+
+        flash("Payment already verified. Your account is active.", "success")
+        return redirect(url_for("student.dashboard"))
+
+    paystack_secret_key = current_app.config.get("PAYSTACK_SECRET_KEY")
+
+    if not paystack_secret_key:
+        flash("Payment verification is not configured.", "danger")
+        return redirect(url_for("student.activate"))
+
+    headers = {
+        "Authorization": f"Bearer {paystack_secret_key}"
+    }
+
+    try:
+        response = requests.get(
+            f"https://api.paystack.co/transaction/verify/{reference}",
+            headers=headers,
+            timeout=20
+        )
+
+        result = response.json()
+
+        if not response.ok or not result.get("status"):
+            flash("Unable to verify payment. Please contact support if you were debited.", "danger")
+            return redirect(url_for("student.activate"))
+
+        payment_data = result.get("data", {})
+        payment_status = payment_data.get("status")
+        paid_amount = payment_data.get("amount")
+        gateway_response = payment_data.get("gateway_response")
+
+        if payment_status != "success":
+            transaction.status = payment_status or "failed"
+            transaction.gateway_response = gateway_response
+            db.session.commit()
+
+            flash("Payment was not successful. Please try again.", "danger")
+            return redirect(url_for("student.activate"))
+
+        if paid_amount < transaction.amount_kobo:
+            transaction.status = "failed"
+            transaction.gateway_response = "Incomplete payment amount"
+            db.session.commit()
+
+            flash("Payment amount is incomplete. Please contact support.", "danger")
+            return redirect(url_for("student.activate"))
+
+        transaction.status = "success"
+        transaction.gateway_response = gateway_response
+        transaction.verified_at = datetime.utcnow()
+
+        current_user.is_active_user = True
+
+        db.session.commit()
+
+        flash("Payment verified successfully. Your account is now active.", "success")
+        return redirect(url_for("student.dashboard"))
+
+    except Exception:
+        db.session.rollback()
+        flash("Payment verification failed. Please contact support if you were debited.", "danger")
+        return redirect(url_for("student.activate"))
+
+
+@student_bp.route("/payment/verify-pending", methods=["POST"])
+@login_required
+def verify_pending_payment():
+    if not valid_active_session():
+        return redirect(url_for("auth.login"))
+
+    if not student_context_required():
+        return redirect(url_for("auth.login"))
+
+    pending_payment = get_pending_payment()
+
+    if not pending_payment:
+        flash("No pending payment found.", "warning")
+        return redirect(url_for("student.activate"))
+
+    return redirect(url_for("student.payment_callback", reference=pending_payment.reference))
 
 
 @student_bp.route("/dashboard")

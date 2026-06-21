@@ -13,52 +13,55 @@
             To unlock full CBT practice access, enter your activation code below.
         </p>
 
-        <!--        <div class="payment-box">-->
-        <!--            <h5>Activation Fee: ₦2,000</h5>-->
-        <!--            <p class="mb-1">Pay and send proof of payment to receive your code.</p>-->
-        <!--            <a href="https://wa.me/2348061755808?text=Hello%2C%20I%20want%20to%20activate%20my%20MockCBT%20account."-->
-        <!--               class="payment-link"-->
-        <!--               target="_blank">-->
-        <!--                Chat on WhatsApp-->
-        <!--            </a>-->
-        <!--        </div>-->
         <div class="payment-box">
             <p class="early-bird-label">EARLY BIRD OFFER</p>
 
             <h5>
-                <span class="old-price">₦2,000</span>
-                <span class="new-price">₦1,500</span>
+                <span class="old-price">₦5,000</span>
+                <span class="new-price">₦2,000</span>
             </h5>
 
             <p class="mb-1">
-                Pay the early bird activation fee and send proof of payment to receive your code.
+                Pay securely online. Your account will be activated automatically after successful payment.
             </p>
 
-            <a href="https://wa.me/2348035760418?text=Hello%2C%20I%20want%20to%20activate%20my%20MockCBT%20account."
-               class="payment-link"
-               target="_blank">
-                Chat on WhatsApp
+            {% if successful_payment %}
+            <div class="paid-code-box">
+                <small>Payment Confirmed</small>
+                <strong>Account ready for activation</strong>
+            </div>
+            {% elif pending_payment %}
+            <div class="paid-code-box">
+                <small>Pending Payment</small>
+                <strong>Continue or verify your payment</strong>
+            </div>
+
+            <a href="{{ pending_payment.authorization_url }}"
+               class="btn btn-gold w-100 mb-2">
+                Continue Payment
             </a>
+
+            <form method="POST" action="{{ url_for('student.verify_pending_payment') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button class="btn btn-outline-secondary w-100">
+                    I Have Paid, Verify Payment
+                </button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('student.start_payment') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button class="btn btn-gold w-100">
+                    Pay ₦2,000 Now
+                </button>
+            </form>
+            {% endif %}
 
             <p class="account-warning mt-3">
                 Access is for one user only. Sharing login details may cause your account to be logged out
                 automatically.
             </p>
         </div>
-
-        <form method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-            <input type="text"
-                   name="activation_code"
-                   class="form-control mb-3 text-uppercase"
-                   placeholder="Enter activation code"
-                   required>
-
-            <button class="btn btn-gold w-100">
-                Activate Account
-            </button>
-        </form>
-    </div>
 </section>
 {% endblock %}
