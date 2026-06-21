@@ -4,7 +4,7 @@ import requests
 from datetime import datetime
 
 from flask_login import logout_user
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app, jsonify
 from flask_login import login_required, current_user
 
 from app.extensions import db
@@ -69,6 +69,11 @@ def get_attempt_questions(attempt):
 
 def render_exam_attempt(attempt):
     questions = get_attempt_questions(attempt)
+    saved_answers = {
+        answer.question_id: answer.selected_option
+        for answer in attempt.answers
+        if answer.selected_option
+    }
     remaining_seconds = get_remaining_seconds(attempt)
 
     if remaining_seconds <= 0:
@@ -82,6 +87,7 @@ def render_exam_attempt(attempt):
         subject=attempt.subject,
         exam_year=attempt.exam_year,
         questions=questions,
+        saved_answers=saved_answers,
         remaining_seconds=remaining_seconds,
         exam_title=exam_title
     )
@@ -460,6 +466,45 @@ def submit_exam(attempt_id):
     db.session.commit()
 
     return redirect(url_for("student.result", attempt_id=attempt.id))
+
+
+@student_bp.route("/exam/<int:attempt_id>/autosave", methods=["POST"])
+@login_required
+def autosave_answer(attempt_id):
+    if not valid_active_session() or not student_context_required():
+        return jsonify({"success": False, "message": "Your session has expired."})
+
+    if not current_user.is_active_user:
+        return jsonify({"success": False, "message": "Your account is not active."})
+
+    attempt = ExamAttempt.query.get_or_404(attempt_id)
+
+    if attempt.user_id != current_user.id:
+        return jsonify({"success": False, "message": "You cannot access this exam."})
+
+    if attempt.submitted_at:
+        return jsonify({"success": False, "message": "This exam has already been submitted."})
+
+    data = request.get_json(silent=True) or {}
+    question_id = data.get("question_id")
+    selected_option = str(data.get("selected_option", "")).upper()
+
+    if not isinstance(question_id, int) or selected_option not in {"A", "B", "C", "D"}:
+        return jsonify({"success": False, "message": "Invalid answer."}),
+
+    answer = UserAnswer.query.filter_by(
+        attempt_id=attempt.id,
+        question_id=question_id
+    ).first()
+
+    if not answer:
+        return jsonify({"success": False, "message": "Question not found in this exam."}),
+
+    answer.selected_option = selected_option
+    answer.answered_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({"success": True})
 
 
 @student_bp.route("/result/<int:attempt_id>")

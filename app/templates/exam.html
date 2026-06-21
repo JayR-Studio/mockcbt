@@ -25,6 +25,7 @@
 
         <div class="exam-timer">
             Time Left: <span id="timer">--:--</span>
+            <small id="saveStatus" class="d-block text-end"></small>
         </div>
     </div>
 
@@ -51,22 +52,26 @@
                 <div class="options-list">
 
                     <label class="option-card">
-                        <input type="radio" name="question_{{ question.id }}" value="A">
+                        <input type="radio" name="question_{{ question.id }}" value="A"
+                               {% if saved_answers.get(question.id) =="A" %}checked{% endif %}>
                         <span>A. {{ question.option_a }}</span>
                     </label>
 
                     <label class="option-card">
-                        <input type="radio" name="question_{{ question.id }}" value="B">
+                        <input type="radio" name="question_{{ question.id }}" value="B"
+                               {% if saved_answers.get(question.id) =="B" %}checked{% endif %}>
                         <span>B. {{ question.option_b }}</span>
                     </label>
 
                     <label class="option-card">
-                        <input type="radio" name="question_{{ question.id }}" value="C">
+                        <input type="radio" name="question_{{ question.id }}" value="C"
+                               {% if saved_answers.get(question.id) =="C" %}checked{% endif %}>
                         <span>C. {{ question.option_c }}</span>
                     </label>
 
                     <label class="option-card">
-                        <input type="radio" name="question_{{ question.id }}" value="D">
+                        <input type="radio" name="question_{{ question.id }}" value="D"
+                               {% if saved_answers.get(question.id) =="D" %}checked{% endif %}>
                         <span>D. {{ question.option_d }}</span>
                     </label>
 
@@ -87,7 +92,7 @@
             <div class="question-palette">
                 {% for question in questions %}
                 <button type="button"
-                        class="palette-btn {% if loop.first %}active{% endif %}"
+                        class="palette-btn {% if loop.first %}active{% endif %} {% if saved_answers.get(question.id) %}answered{% endif %}"
                         data-target="{{ loop.index }}">
                     {{ loop.index }}
                 </button>
@@ -112,6 +117,9 @@
     const questionCards = document.querySelectorAll(".question-card");
     const paletteButtons = document.querySelectorAll(".palette-btn");
     const currentQuestionText = document.getElementById("currentQuestion");
+    const saveStatus = document.getElementById("saveStatus");
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+    const autosaveUrl = {{ url_for('student.autosave_answer', attempt_id=attempt.id)|tojson }};
 
     function showQuestion(index) {
         questionCards.forEach(card => card.classList.add("d-none"));
@@ -147,12 +155,40 @@
     });
 
     document.querySelectorAll("input[type='radio']").forEach(input => {
-        input.addEventListener("change", function () {
+        input.addEventListener("change", async function () {
             const card = this.closest(".question-card");
             const index = card.dataset.questionIndex;
             const palette = document.querySelector(`.palette-btn[data-target="${index}"]`);
 
             palette.classList.add("answered");
+            saveStatus.textContent = "Saving...";
+
+            try {
+                const response = await fetch(autosaveUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken
+                    },
+                    body: JSON.stringify({
+                        question_id: parseInt(this.name.replace("question_", "")),
+                        selected_option: this.value
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error("Autosave failed");
+                }
+
+                saveStatus.textContent = "Answer saved";
+                setTimeout(() => {
+                    if (saveStatus.textContent === "Answer saved") {
+                        saveStatus.textContent = "";
+                    }
+                }, 1500);
+            } catch (error) {
+                saveStatus.textContent = "Not saved - check connection";
+            }
         });
     });
 
