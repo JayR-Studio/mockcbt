@@ -490,7 +490,7 @@ def autosave_answer(attempt_id):
     selected_option = str(data.get("selected_option", "")).upper()
 
     if not isinstance(question_id, int) or selected_option not in {"A", "B", "C", "D"}:
-        return jsonify({"success": False, "message": "Invalid answer."}),
+        return jsonify({"success": False, "message": "Invalid answer."})
 
     answer = UserAnswer.query.filter_by(
         attempt_id=attempt.id,
@@ -498,10 +498,10 @@ def autosave_answer(attempt_id):
     ).first()
 
     if not answer:
-        return jsonify({"success": False, "message": "Question not found in this exam."}),
+        return jsonify({"success": False, "message": "Question not found in this exam."})
 
     answer.selected_option = selected_option
-    answer.answered_at = datetime.utcnow()
+    answer.answered_at = datetime.now()
     db.session.commit()
 
     return jsonify({"success": True})
@@ -720,7 +720,15 @@ def start_full_mock():
 
     exam_year = ExamYear.query.get_or_404(year_id)
 
-    subjects = (
+    # Required subject order for full mock
+    preferred_subject_order = [
+        "Verbal Reasoning",
+        "English / Verbal Reasoning",
+        "Quantitative Reasoning",
+        "General Knowledge",
+    ]
+
+    all_subjects = (
         Subject.query
         .join(Question)
         .filter(
@@ -731,65 +739,97 @@ def start_full_mock():
         .all()
     )
 
-    if not subjects:
+    if not all_subjects:
         flash("No active subjects found for this practice set.", "danger")
         return redirect(url_for("student.full_mock_setup"))
 
-    total_active_questions = Question.query.filter_by(
-        exam_year_id=exam_year.id,
-        is_active=True
-    ).count()
+    selected_subjects = []
 
-    if total_active_questions < question_count:
-        flash("Not enough active questions available for this full mock exam.", "danger")
+    # 1. Pick Verbal/English first
+    verbal_subject = next(
+        (subject for subject in all_subjects if subject.name in ["Verbal Reasoning", "English / Verbal Reasoning"]),
+        None
+    )
+
+    if verbal_subject:
+        selected_subjects.append(verbal_subject)
+
+    # 2. Pick Quantitative Reasoning
+    quant_subject = next(
+        (subject for subject in all_subjects if subject.name == "Quantitative Reasoning"),
+        None
+    )
+
+    if quant_subject and quant_subject not in selected_subjects:
+        selected_subjects.append(quant_subject)
+
+    # 3. Pick General Knowledge
+    general_subject = next(
+        (subject for subject in all_subjects if subject.name == "General Knowledge"),
+        None
+    )
+
+    if general_subject and general_subject not in selected_subjects:
+        selected_subjects.append(general_subject)
+
+    # 4. Pick the last available subject that is not already selected
+    last_subject_priority = [
+        "Current Affairs",
+        "Public Service Rules",
+    ]
+
+    remaining_subjects = [
+        subject for subject in all_subjects
+        if subject not in selected_subjects
+    ]
+
+    last_subject = None
+
+    for subject_name in last_subject_priority:
+        last_subject = next(
+            (subject for subject in remaining_subjects if subject.name == subject_name),
+            None
+        )
+
+        if last_subject:
+            break
+
+    if not last_subject and remaining_subjects:
+        last_subject = remaining_subjects[0]
+
+    if last_subject:
+        selected_subjects.append(last_subject)
+
+    if len(selected_subjects) < 4:
+        flash("This practice set needs at least 4 active subjects for full mock mode.", "danger")
         return redirect(url_for("student.full_mock_setup"))
 
-    subject_count = len(subjects)
-    base_count = question_count // subject_count
-    remainder = question_count % subject_count
+    selected_subjects = selected_subjects[:4]
 
     selected_questions = []
 
-    for index, subject in enumerate(subjects):
-        questions_needed = base_count
-
-        if index < remainder:
-            questions_needed += 1
-
+    for subject in selected_subjects:
         subject_questions = Question.query.filter_by(
             exam_year_id=exam_year.id,
             subject_id=subject.id,
             is_active=True
         ).all()
 
-        if len(subject_questions) <= questions_needed:
-            selected_questions.extend(subject_questions)
-        else:
-            selected_questions.extend(random.sample(subject_questions, questions_needed))
-
-    # If some subjects had fewer questions than needed, fill the gap from remaining active questions.
-    if len(selected_questions) < question_count:
-        selected_ids = {question.id for question in selected_questions}
-
-        remaining_questions = (
-            Question.query
-            .filter(
-                Question.exam_year_id == exam_year.id,
-                Question.is_active == True,
-                ~Question.id.in_(selected_ids)
+        if len(subject_questions) < 25:
+            flash(
+                f"{subject.name} has only {len(subject_questions)} active questions. It needs at least 25 for full mock.",
+                "danger"
             )
-            .all()
-        )
+            return redirect(url_for("student.full_mock_setup"))
 
-        gap = question_count - len(selected_questions)
+        picked_questions = random.sample(subject_questions, 25)
 
-        if len(remaining_questions) >= gap:
-            selected_questions.extend(random.sample(remaining_questions, gap))
-        else:
-            selected_questions.extend(remaining_questions)
+        # Keep subject order, but shuffle questions inside each subject
+        random.shuffle(picked_questions)
 
-    selected_questions = selected_questions[:question_count]
-    random.shuffle(selected_questions)
+        selected_questions.extend(picked_questions)
+
+    question_count = len(selected_questions)
 
     attempt = ExamAttempt(
         user_id=current_user.id,
