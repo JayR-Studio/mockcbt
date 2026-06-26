@@ -10,20 +10,13 @@
             <div>
                 <p class="hero-label">FULL MOCK EXAM</p>
                 <h1>Set Up Your Full Mock</h1>
-                <p>Select your practice set and duration. Full mock contains 100 questions.</p>
+                <p>Choose a practice set, number of questions, and duration.</p>
             </div>
 
             <a href="{{ url_for('student.dashboard') }}" class="btn btn-outline-secondary">
                 Back to Dashboard
             </a>
         </div>
-
-        {% if not current_user.is_active_user %}
-        <div class="alert alert-info mt-4">
-            <strong>Free Trial:</strong>
-            You can take this exam now. After submission, activate your account to view your result and corrections.
-        </div>
-        {% endif %}
 
         <div class="row g-4 mt-4">
 
@@ -32,7 +25,7 @@
                     <p class="practice-label">TIMED PRACTICE</p>
                     <h3>Full Mock Exam</h3>
                     <p>
-                        This mode selects 25 active questions from each of 4 subjects in your chosen practice set.
+                        This mode randomly selects active questions from your chosen practice set.
                     </p>
 
                     <div class="mt-4">
@@ -46,7 +39,7 @@
             <div class="col-lg-7">
                 <div class="practice-card">
                     <h3>Choose Exam Settings</h3>
-                    <p>Select your practice set and duration.</p>
+                    <p>Select your practice set and duration. Full mock contains 100 questions.</p>
 
                     {% if years %}
                     <form method="POST" class="mt-4">

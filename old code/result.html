@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Result | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="result-card">
+
+            <p class="hero-label">RESULT SUMMARY</p>
+
+            <h1>Your Result</h1>
+
+            <div class="score-circle">
+                <span>{{ attempt.percentage|round(1) }}%</span>
+                <small>{{ attempt.score }}/{{ attempt.total_questions }}</small>
+            </div>
+
+            <div class="row g-3 mt-4">
+
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <span>Correct</span>
+                        <h3 class="text-success">{{ correct_count }}</h3>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <span>Wrong</span>
+                        <h3 class="text-danger">{{ wrong_count }}</h3>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <span>Total</span>
+                        <h3>{{ attempt.total_questions }}</h3>
+                    </div>
+                </div>
+
+            </div>
+
+            {% if subject_breakdown %}
+            <div class="subject-result-panel mt-4">
+                <h3>Subject Performance</h3>
+                <p class="text-muted">
+                    See where you performed well and where you need more practice.
+                </p>
+
+                <div class="subject-result-list">
+                    {% for subject_name, data in subject_breakdown.items() %}
+                    <div class="subject-result-item">
+                        <div>
+                            <strong>{{ subject_name }}</strong>
+                            <span>
+                        {{ data.correct }}/{{ data.total }} correct
+                    </span>
+                        </div>
+
+                        <div class="subject-score-block">
+                            <strong>{{ data.percentage|round(1) }}%</strong>
+
+                            {% if data.percentage >= 70 %}
+                            <small class="performance-good">Strong</small>
+                            {% elif data.percentage >= 50 %}
+                            <small class="performance-average">Fair</small>
+                            {% else %}
+                            <small class="performance-poor">Needs Work</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="mt-4 d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('student.dashboard') }}" class="btn btn-gold">
+                    Back to Dashboard
+                </a>
+
+                <a href="{{ url_for('student.review_attempt', attempt_id=attempt.id) }}"
+                   class="btn btn-outline-secondary">
+                    Review Corrections
+                </a>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

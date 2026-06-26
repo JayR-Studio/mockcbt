@@ -115,37 +115,6 @@ def get_successful_payment():
     )
 
 
-
-def user_has_any_attempt():
-    return (
-        ExamAttempt.query
-        .filter_by(user_id=current_user.id)
-        .count()
-    ) > 0
-
-
-def get_latest_submitted_attempt():
-    return (
-        ExamAttempt.query
-        .filter(
-            ExamAttempt.user_id == current_user.id,
-            ExamAttempt.submitted_at.isnot(None)
-        )
-        .order_by(ExamAttempt.submitted_at.desc())
-        .first()
-    )
-
-
-def free_trial_used():
-    return (not current_user.is_active_user) and user_has_any_attempt()
-
-
-def redirect_free_user_to_activation():
-    flash("You have used your free exam attempt. Activate your account to view your result and unlock unlimited practice.", "warning")
-    return redirect(url_for("student.activate"))
-
-
-
 @student_bp.route("/activate", methods=["GET", "POST"])
 @login_required
 def activate():
@@ -402,9 +371,8 @@ def dashboard():
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
-    active_attempt = get_active_attempt()
-    trial_used = free_trial_used()
-    locked_attempt = get_latest_submitted_attempt() if trial_used else None
+    if not current_user.is_active_user:
+        return redirect(url_for("student.activate"))
 
     years = ExamYear.query.order_by(ExamYear.year.desc()).all()
 
@@ -418,23 +386,19 @@ def dashboard():
 
     total_attempts = ExamAttempt.query.filter_by(user_id=current_user.id).count()
 
-    if current_user.is_active_user:
-        best_attempt = (
-            ExamAttempt.query
-            .filter_by(user_id=current_user.id)
-            .order_by(ExamAttempt.percentage.desc())
-            .first()
-        )
+    best_attempt = (
+        ExamAttempt.query
+        .filter_by(user_id=current_user.id)
+        .order_by(ExamAttempt.percentage.desc())
+        .first()
+    )
 
-        last_attempt = (
-            ExamAttempt.query
-            .filter_by(user_id=current_user.id)
-            .order_by(ExamAttempt.started_at.desc())
-            .first()
-        )
-    else:
-        best_attempt = None
-        last_attempt = None
+    last_attempt = (
+        ExamAttempt.query
+        .filter_by(user_id=current_user.id)
+        .order_by(ExamAttempt.started_at.desc())
+        .first()
+    )
 
     questions_practiced = (
         UserAnswer.query
@@ -442,6 +406,8 @@ def dashboard():
         .filter(ExamAttempt.user_id == current_user.id)
         .count()
     )
+
+    active_attempt = get_active_attempt()
 
     return render_template(
         "dashboard.html",
@@ -451,9 +417,7 @@ def dashboard():
         last_attempt=last_attempt,
         questions_practiced=questions_practiced,
         year_question_counts=year_question_counts,
-        active_attempt=active_attempt,
-        trial_used=trial_used,
-        locked_attempt=locked_attempt
+        active_attempt=active_attempt
     )
 
 
@@ -465,6 +429,9 @@ def submit_exam(attempt_id):
 
     if not student_context_required():
         return redirect(url_for("auth.login"))
+
+    if not current_user.is_active_user:
+        return redirect(url_for("student.activate"))
 
     attempt = ExamAttempt.query.get_or_404(attempt_id)
 
@@ -498,10 +465,6 @@ def submit_exam(attempt_id):
 
     db.session.commit()
 
-    if not current_user.is_active_user:
-        flash("Your exam has been submitted. Activate your account to view your result and corrections.", "warning")
-        return redirect(url_for("student.activate"))
-
     return redirect(url_for("student.result", attempt_id=attempt.id))
 
 
@@ -510,6 +473,9 @@ def submit_exam(attempt_id):
 def autosave_answer(attempt_id):
     if not valid_active_session() or not student_context_required():
         return jsonify({"success": False, "message": "Your session has expired."})
+
+    if not current_user.is_active_user:
+        return jsonify({"success": False, "message": "Your account is not active."})
 
     attempt = ExamAttempt.query.get_or_404(attempt_id)
 
@@ -551,9 +517,7 @@ def result(attempt_id):
         return redirect(url_for("auth.login"))
 
     if not current_user.is_active_user:
-        flash("Activate your account to view your result and corrections.", "warning")
         return redirect(url_for("student.activate"))
-
 
     attempt = ExamAttempt.query.get_or_404(attempt_id)
 
@@ -613,9 +577,7 @@ def review_attempt(attempt_id):
         return redirect(url_for("auth.login"))
 
     if not current_user.is_active_user:
-        flash("Activate your account to review your corrections.", "warning")
         return redirect(url_for("student.activate"))
-
 
     attempt = ExamAttempt.query.get_or_404(attempt_id)
 
@@ -646,9 +608,7 @@ def attempts():
         return redirect(url_for("auth.login"))
 
     if not current_user.is_active_user:
-        flash("Activate your account to view past attempts and corrections.", "warning")
         return redirect(url_for("student.activate"))
-
 
     attempts = (
         ExamAttempt.query
@@ -668,15 +628,9 @@ def full_mock_setup():
 
     if not student_context_required():
         return redirect(url_for("auth.login"))
-    active_attempt = get_active_attempt()
 
-    if not current_user.is_active_user and active_attempt:
-        flash("You already have an unfinished free exam. Continue it before doing anything else.", "warning")
-        return redirect(url_for("student.take_exam", attempt_id=active_attempt.id))
-
-    if free_trial_used():
-        return redirect_free_user_to_activation()
-
+    if not current_user.is_active_user:
+        return redirect(url_for("student.activate"))
 
     years = ExamYear.query.order_by(ExamYear.year.desc()).all()
 
@@ -741,14 +695,14 @@ def start_full_mock():
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
+    if not current_user.is_active_user:
+        return redirect(url_for("student.activate"))
+
     active_attempt = get_active_attempt()
 
     if active_attempt:
         flash("You already have an unfinished exam. Continue it before starting a new one.", "warning")
         return redirect(url_for("student.take_exam", attempt_id=active_attempt.id))
-
-    if free_trial_used():
-        return redirect_free_user_to_activation()
 
     year_id = request.args.get("year_id", type=int)
     question_count = request.args.get("question_count", type=int)
@@ -912,15 +866,9 @@ def year_subjects(year_id):
 
     if not student_context_required():
         return redirect(url_for("auth.login"))
-    active_attempt = get_active_attempt()
 
-    if not current_user.is_active_user and active_attempt:
-        flash("You already have an unfinished free exam. Continue it before doing anything else.", "warning")
-        return redirect(url_for("student.take_exam", attempt_id=active_attempt.id))
-
-    if free_trial_used():
-        return redirect_free_user_to_activation()
-
+    if not current_user.is_active_user:
+        return redirect(url_for("student.activate"))
 
     exam_year = ExamYear.query.get_or_404(year_id)
 
@@ -961,15 +909,9 @@ def practice_setup(year_id, subject_id):
 
     if not student_context_required():
         return redirect(url_for("auth.login"))
-    active_attempt = get_active_attempt()
 
-    if not current_user.is_active_user and active_attempt:
-        flash("You already have an unfinished free exam. Continue it before doing anything else.", "warning")
-        return redirect(url_for("student.take_exam", attempt_id=active_attempt.id))
-
-    if free_trial_used():
-        return redirect_free_user_to_activation()
-
+    if not current_user.is_active_user:
+        return redirect(url_for("student.activate"))
 
     exam_year = ExamYear.query.get_or_404(year_id)
     subject = Subject.query.get_or_404(subject_id)
@@ -1031,14 +973,14 @@ def start_subject_practice(year_id, subject_id):
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
+    if not current_user.is_active_user:
+        return redirect(url_for("student.activate"))
+
     active_attempt = get_active_attempt()
 
     if active_attempt:
         flash("You already have an unfinished exam. Continue it before starting a new one.", "warning")
         return redirect(url_for("student.take_exam", attempt_id=active_attempt.id))
-
-    if free_trial_used():
-        return redirect_free_user_to_activation()
 
     question_count = request.args.get("question_count", type=int)
     duration = request.args.get("duration", type=int)
@@ -1116,6 +1058,9 @@ def take_exam(attempt_id):
     if not student_context_required():
         return redirect(url_for("auth.login"))
 
+    if not current_user.is_active_user:
+        return redirect(url_for("student.activate"))
+
     attempt = ExamAttempt.query.get_or_404(attempt_id)
 
     if attempt.user_id != current_user.id:
@@ -1123,10 +1068,6 @@ def take_exam(attempt_id):
         return redirect(url_for("student.dashboard"))
 
     if attempt.submitted_at:
-        if not current_user.is_active_user:
-            flash("Activate your account to view your result and corrections.", "warning")
-            return redirect(url_for("student.activate"))
-
         return redirect(url_for("student.result", attempt_id=attempt.id))
 
     return render_exam_attempt(attempt)

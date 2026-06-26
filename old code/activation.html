@@ -7,10 +7,10 @@
     <div class="auth-card">
         <p class="hero-label">ACCOUNT ACTIVATION</p>
 
-        <h2>Unlock Your Result</h2>
+        <h2>Activate Your Access</h2>
 
         <p>
-            Activate your account to view your submitted result, review corrections, and continue practicing without limits.
+            To unlock full CBT practice access, enter your activation code below.
         </p>
 
         <div class="payment-box">
@@ -21,18 +21,9 @@
                 <span class="new-price">₦2,000</span>
             </h5>
 
-            <p class="mb-3">
-                Secure payment via Paystack. Your account activates automatically after successful payment.
+            <p class="mb-1">
+                Pay securely online. Your account will be activated automatically after successful payment.
             </p>
-
-            <div class="mb-3">
-                <small>
-                    Activation unlocks:
-                    <br>• Your submitted result and corrections
-                    <br>• Unlimited full mock exams
-                    <br>• Unlimited subject practice
-                </small>
-            </div>
 
             {% if successful_payment %}
             <div class="paid-code-box">
@@ -43,7 +34,6 @@
             <div class="paid-code-box">
                 <small>Pending Payment</small>
                 <strong>Continue or verify your payment</strong>
-                <small class="d-block mt-1">Reference: {{ pending_payment.reference }}</small>
             </div>
 
             <a href="{{ pending_payment.authorization_url }}"
@@ -67,13 +57,7 @@
                 </button>
             </form>
             {% endif %}
+            
         </div>
-
-        <div class="mt-3 text-center">
-            <a href="{{ url_for('student.dashboard') }}" class="text-muted">
-                Back to Dashboard
-            </a>
-        </div>
-    </div>
 </section>
 {% endblock %}

@@ -107,7 +107,10 @@ def login():
 
         flash("Login successful.", "success")
 
-        return redirect(url_for("student.dashboard"))
+        if user.is_active_user:
+            return redirect(url_for("student.dashboard"))
+
+        return redirect(url_for("student.activate"))
 
     return render_template("login.html")
 

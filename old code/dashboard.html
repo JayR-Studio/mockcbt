@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | MockCBT{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+    <div class="container">
+
+        <div class="dashboard-header">
+            <div>
+                <p class="hero-label">STUDENT DASHBOARD</p>
+                <h1>Welcome, {{ current_user.full_name }}</h1>
+                <p>Choose a past question year or take a full mock exam.</p>
+            </div>
+
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
+                Logout
+            </a>
+        </div>
+
+        <div class="row g-4 mt-3">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <span>Total Attempts</span>
+                    <h3>{{ total_attempts }}</h3>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <span>Best Score</span>
+                    <h3>{% if best_attempt %}{{ best_attempt.percentage|round(1) }}%{% else %}—{% endif %}</h3>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <span>Last Score</span>
+                    <h3>{% if last_attempt %}{{ last_attempt.percentage|round(1) }}%{% else %}—{% endif %}</h3>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <span>Questions Practiced</span>
+                    <h3>{{ questions_practiced }}</h3>
+                </div>
+            </div>
+        </div>
+
+        {% if active_attempt %}
+        <div class="alert alert-warning mt-4">
+            <strong>You have an unfinished exam.</strong>
+            Continue it before starting another one.
+
+            <a href="{{ url_for('student.take_exam', attempt_id=active_attempt.id) }}"
+               class="btn btn-sm btn-gold ms-2">
+                Resume Exam
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="student-action-section mt-4">
+
+            <div class="section-header-mini">
+                <p class="hero-label">CHOOSE PRACTICE MODE</p>
+                <h2>What do you want to practice today?</h2>
+                <p>Select full mock for exam simulation, or subject practice to focus on weak areas.</p>
+            </div>
+
+            <div class="row g-4">
+
+                <div class="col-lg-6">
+                    <div class="practice-mode-card full-mock-mode">
+                        <div class="mode-icon">⏱</div>
+
+                        <div>
+                            <p class="practice-label">EXAM SIMULATION</p>
+                            <h3>Full Mock Exam</h3>
+                            <p>
+                                Practice mixed questions from a selected question set under timed conditions.
+                                Best when you want to test your overall readiness.
+                            </p>
+                        </div>
+
+                        <a href="{{ url_for('student.full_mock_setup') }}" class="btn btn-gold w-100">
+                            Start Full Mock
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="practice-mode-card subject-mode">
+                        <div class="mode-icon">📚</div>
+
+                        <div>
+                            <p class="practice-label">FOCUSED REVISION</p>
+                            <h3>Subject Practice</h3>
+                            <p>
+                                Choose a practice set, then focus on one subject at a time.
+                                Best when you want to improve a weak area.
+                            </p>
+                        </div>
+
+                        <div class="subject-practice-list">
+                            {% for exam_year in years %}
+                            {% if year_question_counts[exam_year.id] > 0 %}
+                            <a href="{{ url_for('student.year_subjects', year_id=exam_year.id) }}"
+                               class="subject-practice-link">
+                                <span>
+                                    <strong>{{ exam_year.label or exam_year.year }}</strong>
+                                    <small>{{ year_question_counts[exam_year.id] }} active questions</small>
+                                </span>
+
+                                <span class="arrow-icon">→</span>
+                            </a>
+                            {% endif %}
+                            {% else %}
+                            <div class="empty-state">
+                                No practice sets available yet.
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="practice-card mt-4">
+            <h3>Past Attempts</h3>
+            <p>Review your previous scores and corrections.</p>
+
+            <a href="{{ url_for('student.attempts') }}" class="btn btn-outline-secondary">
+                View Attempts
+            </a>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

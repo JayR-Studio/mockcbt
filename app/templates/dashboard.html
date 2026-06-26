@@ -10,13 +10,42 @@
             <div>
                 <p class="hero-label">STUDENT DASHBOARD</p>
                 <h1>Welcome, {{ current_user.full_name }}</h1>
-                <p>Choose a past question year or take a full mock exam.</p>
+                <p>
+                    {% if current_user.is_active_user %}
+                        Choose a practice set or take a full mock exam.
+                    {% elif trial_used %}
+                        Your free exam has been submitted. Activate to view your result and continue practicing.
+                    {% else %}
+                        Take one exam for free. Activate after submission to view your result and unlock unlimited practice.
+                    {% endif %}
+                </p>
             </div>
 
             <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
                 Logout
             </a>
         </div>
+
+        {% if current_user.is_active_user %}
+        <div class="alert alert-success mt-4">
+            <strong>Activated Account:</strong>
+            You have unlimited access to full mock exams, subject practice, results, and corrections.
+        </div>
+        {% elif trial_used %}
+        <div class="alert alert-warning mt-4">
+            <strong>Your free exam has been submitted.</strong>
+            Activate your account to view your result, review corrections, and continue practicing.
+
+            <a href="{{ url_for('student.activate') }}" class="btn btn-sm btn-gold ms-2">
+                Activate Now
+            </a>
+        </div>
+        {% else %}
+        <div class="alert alert-info mt-4">
+            <strong>Free Trial:</strong>
+            You can take one exam for free. Your result and corrections will unlock after activation.
+        </div>
+        {% endif %}
 
         <div class="row g-4 mt-3">
             <div class="col-md-3">
@@ -29,14 +58,30 @@
             <div class="col-md-3">
                 <div class="stat-card">
                     <span>Best Score</span>
-                    <h3>{% if best_attempt %}{{ best_attempt.percentage|round(1) }}%{% else %}—{% endif %}</h3>
+                    <h3>
+                        {% if current_user.is_active_user and best_attempt %}
+                            {{ best_attempt.percentage|round(1) }}%
+                        {% elif trial_used %}
+                            Locked
+                        {% else %}
+                            —
+                        {% endif %}
+                    </h3>
                 </div>
             </div>
 
             <div class="col-md-3">
                 <div class="stat-card">
                     <span>Last Score</span>
-                    <h3>{% if last_attempt %}{{ last_attempt.percentage|round(1) }}%{% else %}—{% endif %}</h3>
+                    <h3>
+                        {% if current_user.is_active_user and last_attempt %}
+                            {{ last_attempt.percentage|round(1) }}%
+                        {% elif trial_used %}
+                            Locked
+                        {% else %}
+                            —
+                        {% endif %}
+                    </h3>
                 </div>
             </div>
 
@@ -65,7 +110,15 @@
             <div class="section-header-mini">
                 <p class="hero-label">CHOOSE PRACTICE MODE</p>
                 <h2>What do you want to practice today?</h2>
-                <p>Select full mock for exam simulation, or subject practice to focus on weak areas.</p>
+                <p>
+                    {% if current_user.is_active_user %}
+                        Select full mock for exam simulation, or subject practice to focus on weak areas.
+                    {% elif trial_used %}
+                        Activate your account to continue practicing.
+                    {% else %}
+                        Start with one free exam. Your result unlocks after activation.
+                    {% endif %}
+                </p>
             </div>
 
             <div class="row g-4">
@@ -83,9 +136,15 @@
                             </p>
                         </div>
 
+                        {% if trial_used and not current_user.is_active_user %}
+                        <a href="{{ url_for('student.activate') }}" class="btn btn-gold w-100">
+                            Activate to Continue
+                        </a>
+                        {% else %}
                         <a href="{{ url_for('student.full_mock_setup') }}" class="btn btn-gold w-100">
                             Start Full Mock
                         </a>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -103,23 +162,34 @@
                         </div>
 
                         <div class="subject-practice-list">
-                            {% for exam_year in years %}
-                            {% if year_question_counts[exam_year.id] > 0 %}
-                            <a href="{{ url_for('student.year_subjects', year_id=exam_year.id) }}"
-                               class="subject-practice-link">
-                                <span>
-                                    <strong>{{ exam_year.label or exam_year.year }}</strong>
-                                    <small>{{ year_question_counts[exam_year.id] }} active questions</small>
-                                </span>
-
-                                <span class="arrow-icon">→</span>
-                            </a>
-                            {% endif %}
+                            {% if trial_used and not current_user.is_active_user %}
+                                <a href="{{ url_for('student.activate') }}"
+                                   class="subject-practice-link">
+                                    <span>
+                                        <strong>Activate to Continue</strong>
+                                        <small>Unlock results, corrections, and unlimited practice</small>
+                                    </span>
+                                    <span class="arrow-icon">→</span>
+                                </a>
                             {% else %}
-                            <div class="empty-state">
-                                No practice sets available yet.
-                            </div>
-                            {% endfor %}
+                                {% for exam_year in years %}
+                                {% if year_question_counts[exam_year.id] > 0 %}
+                                <a href="{{ url_for('student.year_subjects', year_id=exam_year.id) }}"
+                                   class="subject-practice-link">
+                                    <span>
+                                        <strong>{{ exam_year.label or exam_year.year }}</strong>
+                                        <small>{{ year_question_counts[exam_year.id] }} active questions</small>
+                                    </span>
+
+                                    <span class="arrow-icon">→</span>
+                                </a>
+                                {% endif %}
+                                {% else %}
+                                <div class="empty-state">
+                                    No practice sets available yet.
+                                </div>
+                                {% endfor %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -129,11 +199,23 @@
 
         <div class="practice-card mt-4">
             <h3>Past Attempts</h3>
-            <p>Review your previous scores and corrections.</p>
+            <p>
+                {% if current_user.is_active_user %}
+                    Review your previous scores and corrections.
+                {% else %}
+                    Activate your account to view your submitted result and corrections.
+                {% endif %}
+            </p>
 
+            {% if current_user.is_active_user %}
             <a href="{{ url_for('student.attempts') }}" class="btn btn-outline-secondary">
                 View Attempts
             </a>
+            {% else %}
+            <a href="{{ url_for('student.activate') }}" class="btn btn-gold">
+                Activate to View Result
+            </a>
+            {% endif %}
         </div>
 
     </div>
